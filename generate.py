@@ -13,6 +13,7 @@ import json
 IMAGES_URL = 'https://raw.githubusercontent.com/rothdennis/Proxmox-Templates/refs/heads/main/images.json'
 # Load images configuration
 IMAGES = json.loads(urllib.request.urlopen(IMAGES_URL).read().decode('utf-8'))
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 ### HELPER FUNCTIONS ###
 
@@ -27,6 +28,41 @@ def show_progress(block_num, block_size, total_size):
         # Total size is unknown
         sys.stdout.write(f"\rDownloaded {downloaded} bytes")
         sys.stdout.flush()
+
+def get_country_code():
+    """Look up the two-letter country code of this host's public IP, or None on failure."""
+    for url in ('https://ipinfo.io/country', 'https://ipapi.co/country'):
+        try:
+            request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+            with urllib.request.urlopen(request, timeout=5) as response:
+                code = response.read().decode('utf-8').strip().upper()
+            if len(code) == 2 and code.isalpha():
+                return 'GB' if code == 'UK' else code
+        except Exception:
+            continue
+    return None
+
+def url_exists(url):
+    try:
+        request = urllib.request.Request(url, method='HEAD', headers={'User-Agent': USER_AGENT})
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return response.status == 200
+    except Exception:
+        return False
+
+def resolve_image_url(distro_name, image_url, country):
+    """Return the image URL on a local mirror (AU, GB or US) if one exists, else the original URL."""
+    mirrors = IMAGES[distro_name].get('mirrors', {})
+    origin = mirrors.get('origin')
+    mirror = mirrors.get(country)
+    if not (origin and mirror and image_url.startswith(origin)):
+        return image_url
+    mirror_url = mirror + image_url[len(origin):]
+    if url_exists(mirror_url):
+        print(f'Using {country} mirror: {mirror_url}')
+        return mirror_url
+    print(f'{country} mirror unavailable, using upstream.')
+    return image_url
 
 def is_valid_ssh_public_key(key: str) -> bool:
     with tempfile.NamedTemporaryFile("w", delete=False) as f:
@@ -547,8 +583,13 @@ def main():
         sys.exit(0)
     
     clear_screen()
+    country = get_country_code()
+    if country in ('AU', 'GB', 'US'):
+        print(f'Detected location: {country}, using local mirrors where available.\n')
+    else:
+        print('Could not match a local mirror for this location, using upstream downloads.\n')
     print(f'Creating {len(selected_combinations)} template(s)...\n')
-    
+
     # Create templates for all selected combinations
     current_id = config['id_start']
     for idx, (distro_name, version_choice) in enumerate(selected_combinations, 1):
@@ -560,6 +601,7 @@ def main():
         current_id = int(vm_id) + 1  # Increment for next template
         
         image_url = IMAGES[distro_name]['versions'][version_choice]['url']
+        image_url = resolve_image_url(distro_name, image_url, country)
         image_name = download_image(image_url)
         image_name = decompress_image(image_name)
         

@@ -148,6 +148,10 @@ users:
       - ssh-rsa AAAA...your-public-key...
 ```
 
+### Local Mirrors
+
+The script looks up the country of your public IP address. If you are in Australia (AARNet), the UK (UK Mirror Service) or the US (kernel.org, MIT, OSUOSL), images are downloaded from a nearby mirror where one is listed under `mirrors` in `images.json`. If no mirror is available or it does not respond, the upstream URL is used.
+
 ## Troubleshooting
 
 **Storage not found:**

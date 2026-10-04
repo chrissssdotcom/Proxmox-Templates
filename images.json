@@ -1,6 +1,12 @@
 {
     "Alma Linux": {
         "tag": "alma",
+        "mirrors": {
+            "origin": "https://repo.almalinux.org/almalinux/",
+            "AU": "https://mirror.aarnet.edu.au/pub/almalinux/",
+            "GB": "https://www.mirrorservice.org/sites/repo.almalinux.org/almalinux/",
+            "US": "https://ftp.osuosl.org/pub/almalinux/"
+        },
         "versions": [
             {
                 "name": "10",
@@ -18,6 +24,12 @@
     },
     "Alpine Linux": {
         "tag": "alpine",
+        "mirrors": {
+            "origin": "https://dl-cdn.alpinelinux.org/alpine/",
+            "AU": "https://mirror.aarnet.edu.au/pub/alpine/",
+            "GB": "https://uk.alpinelinux.org/alpine/",
+            "US": "https://mirrors.kernel.org/alpine/"
+        },
         "versions": [
             {
                 "name": "3.23",
@@ -53,6 +65,12 @@
     },
     "Arch Linux": {
         "tag": "arch",
+        "mirrors": {
+            "origin": "https://fastly.mirror.pkgbuild.com/images/",
+            "AU": "https://mirror.aarnet.edu.au/pub/archlinux/images/",
+            "GB": "https://www.mirrorservice.org/sites/ftp.archlinux.org/images/",
+            "US": "https://mirrors.kernel.org/archlinux/images/"
+        },
         "versions": [
             {
                 "name": "latest",
@@ -88,6 +106,12 @@
     },
     "Fedora Cloud": {
         "tag": "fedora",
+        "mirrors": {
+            "origin": "https://download.fedoraproject.org/pub/fedora/linux/",
+            "AU": "https://mirror.aarnet.edu.au/pub/fedora/linux/",
+            "GB": "https://www.mirrorservice.org/sites/dl.fedoraproject.org/pub/fedora/linux/",
+            "US": "https://mirrors.kernel.org/fedora/"
+        },
         "versions": [
             {
                 "name": "44",
@@ -166,6 +190,12 @@
     },
     "Rocky Linux": {
         "tag": "rocky",
+        "mirrors": {
+            "origin": "https://dl.rockylinux.org/pub/rocky/",
+            "AU": "https://mirror.aarnet.edu.au/pub/rocky/",
+            "GB": "https://www.mirrorservice.org/sites/download.rockylinux.org/pub/rocky/",
+            "US": "https://mirrors.mit.edu/rocky/"
+        },
         "versions": [
             {
                 "name": "10",
@@ -183,6 +213,10 @@
     },
     "Ubuntu": {
         "tag": "ubuntu",
+        "mirrors": {
+            "origin": "https://cloud-images.ubuntu.com/releases/",
+            "GB": "https://www.mirrorservice.org/sites/cloud-images.ubuntu.com/releases/"
+        },
         "versions": [
             {
                 "name": "26.04",

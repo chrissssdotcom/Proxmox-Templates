@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-04
+
+- detect the host's country by IP and download images from a local mirror where available (AU: AARNet, UK: UK Mirror Service, US: kernel.org/MIT/OSUOSL), falling back to the upstream URL
+
 ## 2025-12-03
 
 - add the ability to create multiple templates at once
