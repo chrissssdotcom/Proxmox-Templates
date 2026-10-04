@@ -126,7 +126,9 @@ options:
 
 ### Using a Custom Cloud-Init File
 
-When running the script, you will be prompted to choose between:
+If the current directory contains `.yaml`/`.yml` files starting with `#cloud-config`, the script first offers to use one. The chosen file is copied into a snippet-enabled storage pool and used for the templates.
+
+Otherwise, you will be prompted to choose between:
 1. **Enter credentials manually** - Enter username, password, and SSH key interactively
 2. **Use a cloud-init file** - Select from available cloud-init files in snippet-enabled storage pools
 

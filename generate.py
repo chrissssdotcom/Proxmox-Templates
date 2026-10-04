@@ -64,6 +64,18 @@ def resolve_image_url(distro_name, image_url, country):
     print(f'{country} mirror unavailable, using upstream.')
     return image_url
 
+def prompt_yes_no(question, default=True):
+    suffix = '[Y/n]' if default else '[y/N]'
+    while True:
+        answer = input(f'{question} {suffix}: ').strip().lower()
+        if not answer:
+            return default
+        if answer in ('y', 'yes'):
+            return True
+        if answer in ('n', 'no'):
+            return False
+        print('Please answer y or n.\n')
+
 def is_valid_ssh_public_key(key: str) -> bool:
     with tempfile.NamedTemporaryFile("w", delete=False) as f:
         f.write(key)
@@ -218,6 +230,103 @@ def get_cloud_init_files():
                     cloud_init_files.append(volume_path)
 
     return cloud_init_files
+
+def find_local_cloud_init_files():
+    """Find cloud-init files (yaml/yml starting with #cloud-config) in the current directory."""
+    found = []
+    for name in sorted(os.listdir('.')):
+        # Snippet names are restricted, so skip anything we could not upload
+        if not name.endswith(('.yaml', '.yml')) or not all(c.isalnum() or c in '-_.' for c in name):
+            continue
+        if not os.path.isfile(name):
+            continue
+        try:
+            with open(name) as f:
+                if f.readline().startswith('#cloud-config'):
+                    found.append(name)
+        except (OSError, UnicodeDecodeError):
+            continue
+    return found
+
+def upload_cloud_init_snippet(local_file):
+    """Copy a local cloud-init file into a snippet-enabled storage.
+    Returns the volume path (storage:snippets/file.yaml), or None if it could not be uploaded.
+    """
+    snippet_storages = [s for s in get_snippet_storages() if all(c.isalnum() or c in '-_' for c in s)]
+    if not snippet_storages:
+        print('No snippet-enabled storage pools found, cannot use a local cloud-init file.')
+        return None
+
+    if len(snippet_storages) == 1:
+        storage = snippet_storages[0]
+    else:
+        print('Select storage for the cloud-init snippet\n')
+        for i, name in enumerate(snippet_storages):
+            print(f'{i+1}) {name}')
+        while True:
+            try:
+                choice = int(input('\nEnter choice: ')) - 1
+                if 0 <= choice < len(snippet_storages):
+                    break
+                print('Invalid choice. Please try again.\n')
+            except ValueError:
+                print('Invalid input. Please enter a number.\n')
+        storage = snippet_storages[choice]
+
+    volume = f'{storage}:snippets/{local_file}'
+    res = subprocess.run(['pvesm', 'path', volume], capture_output=True, text=True)
+    if res.returncode != 0 or not res.stdout.strip():
+        print(f'Could not resolve the path for {volume}.')
+        return None
+    destination = res.stdout.strip()
+
+    if os.path.exists(destination) and not prompt_yes_no(f'{volume} already exists. Overwrite?', default=False):
+        print(f'Using existing {volume}')
+        return volume
+
+    try:
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
+        shutil.copyfile(local_file, destination)
+    except OSError as e:
+        print(f'Could not copy {local_file} to {destination}: {e}')
+        return None
+    print(f'Uploaded {local_file} to {volume}')
+    return volume
+
+def select_local_cloud_init_file():
+    """Offer cloud-init files found in the current directory.
+    Returns a snippet volume path, or None if none were found, declined or could not be uploaded.
+    """
+    local_files = find_local_cloud_init_files()
+    if not local_files:
+        return None
+
+    print(f'Found cloud-init file(s) in {os.getcwd()}\n')
+    if len(local_files) == 1:
+        selected = local_files[0]
+        if not prompt_yes_no(f'Use {selected}?'):
+            print('\n-----\n')
+            return None
+    else:
+        for i, name in enumerate(local_files):
+            print(f'{i+1}) {name}')
+        print(f'{len(local_files)+1}) Don\'t use a local file')
+        while True:
+            try:
+                choice = int(input('\nEnter choice: ')) - 1
+                if 0 <= choice <= len(local_files):
+                    break
+                print('Invalid choice. Please try again.\n')
+            except ValueError:
+                print('Invalid input. Please enter a number.\n')
+        if choice == len(local_files):
+            print('\n-----\n')
+            return None
+        selected = local_files[choice]
+
+    volume = upload_cloud_init_snippet(selected)
+    print('\n-----\n')
+    return volume
 
 def select_cloud_init_method():
     """Ask user whether to input credentials manually or use a cloud-init file."""
@@ -555,10 +664,23 @@ def main():
     
     clear_screen()
     
-    # Ask user for cloud-init configuration method
-    cloud_init_method = select_cloud_init_method()
-    
-    if cloud_init_method == 2:
+    # Offer cloud-init files found in the current directory first
+    local_cloud_init_file = select_local_cloud_init_file()
+
+    # Otherwise ask user for cloud-init configuration method
+    if local_cloud_init_file:
+        cloud_init_method = 2
+    else:
+        cloud_init_method = select_cloud_init_method()
+
+    if local_cloud_init_file:
+        cloud_init_file = local_cloud_init_file
+        print(f'Using cloud-init file: {cloud_init_file}')
+        print('\n-----\n')
+        username = None
+        password = None
+        ssh_key = None
+    elif cloud_init_method == 2:
         # User wants to use a cloud-init file
         cloud_init_file = select_cloud_init_file()
         print(f'Using cloud-init file: {cloud_init_file}')

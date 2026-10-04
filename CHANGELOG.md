@@ -3,6 +3,7 @@
 ## 2026-10-04
 
 - detect the host's country by IP and download images from a local mirror where available (AU: AARNet, UK: UK Mirror Service, US: kernel.org/MIT/OSUOSL), falling back to the upstream URL
+- offer cloud-init files (`#cloud-config` yaml/yml) found in the current directory and upload the chosen one to snippet storage
 
 ## 2025-12-03
 
